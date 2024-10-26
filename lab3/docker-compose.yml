@@ -1,0 +1,17 @@
+services:
+  server:
+    build: server/
+    ports:
+      - 8080:8080
+
+  client1:
+    build: client/
+    network_mode: host
+    depends_on:
+      - server
+
+  client2:
+    build: client/
+    network_mode: host
+    depends_on:
+      - server
