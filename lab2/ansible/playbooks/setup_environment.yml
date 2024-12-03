@@ -1,0 +1,62 @@
+- name: Setup application environment
+  hosts: all
+  tasks:
+    - name: Install build tools
+      ansible.builtin.package:
+        name: make
+        state: present
+
+    - name: Install Go
+      shell: |
+        wget https://go.dev/dl/go1.22.0.linux-amd64.tar.gz
+        rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.0.linux-amd64.tar.gz
+        ln -s /usr/local/go/bin/go /usr/bin/go
+
+    - name: Ensure /opt/application exists
+      file:
+        path: /opt/application
+        state: directory
+        mode: '0755'
+
+    - name: Pull application code
+      git:
+        repo: 'https://github.com/PETEPEtrek/sberPDRISexampleProject.git'
+        dest: /opt/application
+        force: yes
+
+    - name: Verify contents of /opt/application
+      ansible.builtin.shell: ls -la /opt/application
+      register: app_contents
+
+    - name: Display application directory contents
+      ansible.builtin.debug:
+        var: app_contents.stdout
+
+    - name: Ensure Go dependencies are installed
+      shell: |
+        cd /opt/application
+        go mod tidy
+      args:
+        chdir: /opt/application
+
+    - name: Build Go application
+      shell: |
+        cd /opt/application
+        go build -o app main.go
+      args:
+        chdir: /opt/application
+    - name: Run application
+      shell: |
+        nohup ./app > /opt/application/app.log 2>&1 &
+      args:
+        chdir: /opt/application
+      async: 0
+      poll: 0
+
+    - name: Verify application is running
+      shell: "pgrep -f './app'"
+      register: app_process
+      failed_when: app_process.rc != 0
+
+    - debug:
+        msg: "Application is running with PID: {{ app_process.stdout }}"
