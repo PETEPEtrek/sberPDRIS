@@ -1,7 +1,10 @@
-FROM golang:latest
+FROM alpine:3.11
 
-ADD ./ /workdir/
-WORKDIR /workdir/
-RUN go mod tidy
+RUN apk add --no-cache openssh-client ansible git sshpass 
 
-ENTRYPOINT []
+COPY ./ansible /ansible
+
+WORKDIR /ansible
+
+CMD ["/bin/sh"]
+
